@@ -536,7 +536,7 @@ INSERT INTO message (id, chat_id, author_id, sticker_path, message_type_id, sent
     ('a9a9aea0-d461-437d-b4eb-bf030a0efc80', 'a1a9aea0-d461-437d-b4eb-bf030a0efc80', 'a0a0aaa0-d461-437d-b4eb-bf030a0efc80', '/files/6762d4545803e3d181d0ecc7', 4, '1999-12-31 00:00:00.881 +0300');
 
 INSERT INTO message (id, chat_id, author_id, message, message_type_id, sent_at) VALUES
-    ('a9a9aea0-d461-437d-b4eb-bf030a0efc80', 'a1a9aea0-d461-437d-b4eb-bf030a0efc80', 'a0a0aaa0-d461-437d-b4eb-bf030a0efc80', 'Привет! 🎉 
+    ('a8a9aea0-d461-437d-b4eb-bf030a0efc80', 'a1a9aea0-d461-437d-b4eb-bf030a0efc80', 'a0a0aaa0-d461-437d-b4eb-bf030a0efc80', 'Привет! 🎉 
 
 Добро пожаловать в Патефон! Мы рады видеть тебя здесь. Это пространство для общения, обмена идеями и просто хорошего времяпрепровождения. 
 
@@ -557,4 +557,4 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_add_user_to_chat_user
 AFTER INSERT ON public."user"
 FOR EACH ROW
-EXECUTE FUNCTION add_user_to_chat_user();
+EXECUTE FUNCTION add_user_to_default_chat();

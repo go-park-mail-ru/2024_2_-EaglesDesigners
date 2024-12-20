@@ -24,7 +24,7 @@ import (
 const fileURLPrefix = "/files/"
 
 type Repository interface {
-	GetFile(ctx context.Context, filename string) (*bytes.Buffer, *models.FileMetaData, error)
+	GetFile(ctx context.Context, filename string, userID string) (*bytes.Buffer, *models.FileMetaData, error)
 	SaveFile(ctx context.Context, fileBuffer *bytes.Buffer, metadata primitive.D) (string, error)
 	DeleteFile(ctx context.Context, fileID primitive.ObjectID) error
 	RewriteFile(ctx context.Context, fileID primitive.ObjectID, fileBuffer *bytes.Buffer, metadata primitive.D) error
@@ -43,8 +43,8 @@ func New(repo Repository) *Usecase {
 	}
 }
 
-func (u *Usecase) GetFile(ctx context.Context, fileIDStr string) (*bytes.Buffer, *models.FileMetaData, error) {
-	return u.repo.GetFile(ctx, fileIDStr)
+func (u *Usecase) GetFile(ctx context.Context, fileIDStr string, userID string) (*bytes.Buffer, *models.FileMetaData, error) {
+	return u.repo.GetFile(ctx, fileIDStr, userID)
 }
 
 func (u *Usecase) SaveFile(ctx context.Context, file multipart.File, header *multipart.FileHeader, users []string) (models.Payload, error) {

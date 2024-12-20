@@ -211,7 +211,7 @@ func main() {
 	router.HandleFunc("/auth", auth.Authorize(auth.AuthHandler)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/login", auth.LoginHandler).Methods("POST", "OPTIONS")
 	router.HandleFunc("/signup", auth.RegisterHandler).Methods("POST", "OPTIONS")
-	router.HandleFunc("/files/{fileID}", files.GetFile).Methods("GET", "OPTIONS")
+	router.HandleFunc("/files/{fileID}", auth.Authorize(files.GetFile)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/stickerpacks", files.GetStickerPacks).Methods("GET", "OPTIONS")
 	router.HandleFunc("/stickerpacks/{packid}", files.GetStickerPack).Methods("GET", "OPTIONS")
 	// router.HandleFunc("/files", files.UploadFile).Methods("POST", "OPTIONS")

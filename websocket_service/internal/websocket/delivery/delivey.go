@@ -66,6 +66,7 @@ func (h *Webcosket) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		responser.SendError(r.Context(), w, "Не переданы параметры", http.StatusInternalServerError)
 		return
 	}
+
 	log.Printf("Пользователь %v Открыл сокет", user.ID)
 
 	conn, err := upgrader.Upgrade(w, r, nil)

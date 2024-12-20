@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/mailru/easyjson"
 
@@ -113,7 +114,7 @@ func (d *Delivery) GetContactsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("контакты успешно отправлены")
 
-	//responser.SendStruct(ctx, w, response, http.StatusOK)
+	// responser.SendStruct(ctx, w, response, http.StatusOK)
 	jsonResp, err := easyjson.Marshal(response)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusOK)
 }
@@ -191,7 +192,7 @@ func (d *Delivery) AddContactHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Contact delivery: контакт успешно создан")
 
-	//responser.SendStruct(ctx, w, response, http.StatusCreated)
+	// responser.SendStruct(ctx, w, response, http.StatusCreated)
 	jsonResp, err := easyjson.Marshal(response)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusCreated)
 }

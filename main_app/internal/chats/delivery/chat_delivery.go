@@ -319,7 +319,6 @@ func (c *ChatDelivery) DeleteUsersFromChat(w http.ResponseWriter, r *http.Reques
 
 	var usersToDelete model.DeleteUsersFromChatDTO
 	err = easyjson.UnmarshalFromReader(r.Body, &usersToDelete)
-
 	if err != nil {
 		log.Printf("Не удалось распарсить Json: %v", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -616,7 +615,7 @@ func (c *ChatDelivery) UpdateGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//responser.SendStruct(ctx, w, updatedChat, 200)
+	// responser.SendStruct(ctx, w, updatedChat, 200)
 	jsonResp, err := easyjson.Marshal(updatedChat)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusOK)
 }
@@ -678,7 +677,7 @@ func (c *ChatDelivery) GetChatInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//responser.SendStruct(ctx, w, info, http.StatusOK)
+	// responser.SendStruct(ctx, w, info, http.StatusOK)
 	jsonResp, err := easyjson.Marshal(info)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusOK)
 }
@@ -734,7 +733,7 @@ func (c *ChatDelivery) AddBranch(w http.ResponseWriter, r *http.Request) {
 		responser.SendError(ctx, w, "invalid data", http.StatusBadRequest)
 	}
 
-	//responser.SendStruct(ctx, w, branch, http.StatusCreated)
+	// responser.SendStruct(ctx, w, branch, http.StatusCreated)
 	jsonResp, err := easyjson.Marshal(branch)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusCreated)
 }
@@ -790,7 +789,7 @@ func (c *ChatDelivery) SearchChats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//responser.SendStruct(ctx, w, output, http.StatusOK)
+	// responser.SendStruct(ctx, w, output, http.StatusOK)
 	jsonResp, err := easyjson.Marshal(output)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusOK)
 }

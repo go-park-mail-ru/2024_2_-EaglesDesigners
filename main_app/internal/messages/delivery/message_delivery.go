@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/mailru/easyjson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/mailru/easyjson"
 
@@ -256,7 +257,6 @@ func (h *MessageController) UpdateMessage(w http.ResponseWriter, r *http.Request
 
 	var messageDTO models.Message
 	err = easyjson.UnmarshalFromReader(r.Body, &messageDTO)
-
 	if err != nil {
 		log.Printf("Не удалось распарсить Json: %v", err)
 		responser.SendError(ctx, w, fmt.Sprintf("Не удалось распарсить Json: %v", err), http.StatusBadRequest)

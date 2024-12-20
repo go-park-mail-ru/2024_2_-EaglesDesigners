@@ -361,7 +361,8 @@ ALTER TABLE ONLY public.contact
 --
 
 ALTER TABLE ONLY public.message_payload
-    ADD CONSTRAINT message_id_fk_message_payload_id_pk_messages FOREIGN KEY (message_id) REFERENCES public.message(id);
+    ADD CONSTRAINT message_id_fk_message_payload_id_pk_messages FOREIGN KEY (message_id) REFERENCES public.message(id)
+    ON DELETE CASCADE;
 
 
 --

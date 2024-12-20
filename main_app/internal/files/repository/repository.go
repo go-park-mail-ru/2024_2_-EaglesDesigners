@@ -33,7 +33,7 @@ func New(bucket *gridfs.Bucket, pool *pgxpool.Pool) *Repository {
 	}
 }
 
-func (r *Repository) GetFile(ctx context.Context, filename string) (*bytes.Buffer, *models.FileMetaData, error) {
+func (r *Repository) GetFile(ctx context.Context, filename string, userID string) (*bytes.Buffer, *models.FileMetaData, error) {
 	log := logger.LoggerWithCtx(ctx, logger.Log)
 
 	log.Println("поиск по filename:", filename)
@@ -89,6 +89,34 @@ func (r *Repository) GetFile(ctx context.Context, filename string) (*bytes.Buffe
 
 	log.Print("meta: ", metadata)
 
+	if users, ok := metadata["users"]; ok {
+		userIDs, ok := users.(primitive.A)
+		if !ok {
+			log.Errorln("не удалось привести массив пользователей к ожидаемому типу")
+			return nil, nil, errors.New("неверный формат данных пользователей")
+		}
+
+		userIDsSlice := make([]string, len(userIDs))
+		for i, user := range userIDs {
+			userID, ok := user.(string)
+			if !ok {
+				log.Errorln("не удалось привести пользователя к строковому типу")
+				return nil, nil, errors.New("неверный формат идентификатора пользователя")
+			}
+			userIDsSlice[i] = userID
+		}
+
+		log.Println("Идентификаторы пользователей:", userIDsSlice)
+
+		if !contains(userIDsSlice, userID) {
+			err := errors.New("forbidden")
+			log.WithError(err).Errorf("у юзера %s нет прав", userID)
+			return nil, nil, err
+		}
+	} else {
+		log.Println("Тег 'users' не найден в метаданных.")
+	}
+
 	fileMeta := &models.FileMetaData{
 		Filename:    metadata["filename"].(string),
 		ContentType: metadata["contentType"].(string),
@@ -98,6 +126,15 @@ func (r *Repository) GetFile(ctx context.Context, filename string) (*bytes.Buffe
 	log.Print("my meta: ", fileMeta)
 
 	return fileBuffer, fileMeta, nil
+}
+
+func contains(arr []string, value string) bool {
+	for _, v := range arr {
+		if v == value {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Repository) SaveFile(ctx context.Context, fileBuffer *bytes.Buffer, metadata primitive.D) (string, error) {

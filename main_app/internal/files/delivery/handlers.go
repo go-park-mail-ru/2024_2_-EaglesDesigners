@@ -14,11 +14,12 @@ import (
 
 	"github.com/go-park-mail-ru/2024_2_EaglesDesigner/global_utils/logger"
 	"github.com/go-park-mail-ru/2024_2_EaglesDesigner/global_utils/responser"
+	auth "github.com/go-park-mail-ru/2024_2_EaglesDesigner/main_app/internal/auth/models"
 	"github.com/go-park-mail-ru/2024_2_EaglesDesigner/main_app/internal/files/models"
 )
 
 type Usecase interface {
-	GetFile(ctx context.Context, fileIDStr string) (*bytes.Buffer, *models.FileMetaData, error)
+	GetFile(ctx context.Context, fileIDStr string, userID string) (*bytes.Buffer, *models.FileMetaData, error)
 	SaveSticker(ctx context.Context, file multipart.File, header *multipart.FileHeader, name string) error
 	GetStickerPack(ctx context.Context, packID string) (models.GetStickerPackResponse, error)
 	GetStickerPacks(ctx context.Context) (models.StickerPacks, error)
@@ -33,21 +34,21 @@ type Delivery struct {
 // /files/675f391413dbaf51a93aa2db.
 func New(usecase Usecase) *Delivery {
 	URLs := []string{
-		"/uploads/stickers/675f2ea013dbaf51a93aa2d3.webp",
-		"/uploads/stickers/675f466313dbaf51a93aa2e4.webp",
-		"/uploads/stickers/675f391413dbaf51a93aa2db.webp",
-		"/uploads/stickers/6762d25b5803e3d181d0ecc4.webp",
-		"/uploads/stickers/6762d4535803e3d181d0ecc6.webp",
-		"/uploads/stickers/6762d4545803e3d181d0ecc7.webp",
-		"/uploads/stickers/6762d5135803e3d181d0ecc8.webp",
+		"/uploads/stickers/utka/675f2ea013dbaf51a93aa2d3.webp",
+		"/uploads/stickers/utka/675f466313dbaf51a93aa2e4.webp",
+		"/uploads/stickers/utka/675f391413dbaf51a93aa2db.webp",
+		"/uploads/stickers/utka/6762d25b5803e3d181d0ecc4.webp",
+		"/uploads/stickers/utka/6762d4535803e3d181d0ecc6.webp",
+		"/uploads/stickers/utka/6762d4545803e3d181d0ecc7.webp",
+		"/uploads/stickers/utka/6762d5135803e3d181d0ecc8.webp",
 
-		"/uploads/stickers/6762d5505803e3d181d0ecc9.webp",
-		"/uploads/stickers/6762d7f95803e3d181d0ecca.webp",
-		"/uploads/stickers/6762d8aa5803e3d181d0eccb.webp",
-		"/uploads/stickers/6762d8d85803e3d181d0eccc.webp",
-		"/uploads/stickers/6762d8f45803e3d181d0eccd.webp",
-		"/uploads/stickers/6762d90e5803e3d181d0ecce.webp",
-		"/uploads/stickers/6762d9215803e3d181d0eccf.webp",
+		"/uploads/stickers/gopher/6762d5505803e3d181d0ecc9.webp",
+		"/uploads/stickers/gopher/6762d7f95803e3d181d0ecca.webp",
+		"/uploads/stickers/gopher/6762d8aa5803e3d181d0eccb.webp",
+		"/uploads/stickers/gopher/6762d8d85803e3d181d0eccc.webp",
+		"/uploads/stickers/gopher/6762d8f45803e3d181d0eccd.webp",
+		"/uploads/stickers/gopher/6762d90e5803e3d181d0ecce.webp",
+		"/uploads/stickers/gopher/6762d9215803e3d181d0eccf.webp",
 	}
 
 	for _, url := range URLs {
@@ -68,31 +69,6 @@ func New(usecase Usecase) *Delivery {
 }
 
 // // GetImage godoc
-// // @Summary Retrieve an image
-// // @Description Fetches an image from the specified folder and by filename
-// // @Tags uploads
-// // @Accept json
-// // @Produce json
-// // @Param folder path string true "Folder name" example("avatar")
-// // @Param name path string true "File name" example("642c5a57-ebc7-49d0-ac2d-f2f1f474bee7.png")
-// // @Success 200 {file} string "Successful image retrieval"
-// // @Failure 404 {object} map[string]string "File not found"
-// // @Router /files/images/{name} [get]
-// func (d *Delivery) GetImage(w http.ResponseWriter, r *http.Request) {
-// 	log := logger.LoggerWithCtx(r.Context(), logger.Log)
-
-// 	vars := mux.Vars(r)
-// 	folder := vars["folder"]
-// 	name := vars["name"]
-
-// 	imagePath := "/uploads/" + folder + "/" + name
-
-// 	log.Println("пришел запрос на получение картинки ", imagePath)
-
-// 	http.ServeFile(w, r, imagePath)
-// }
-
-// // GetImage godoc
 // // @Summary Получить файл
 // // @Description Получить файл по его Id
 // // @Tags files
@@ -109,10 +85,21 @@ func (d Delivery) GetFile(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	fileIDStr := vars["fileID"]
 
+	user, ok := ctx.Value(auth.UserKey).(auth.User)
+	if !ok {
+		responser.SendError(ctx, w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
 	log.Printf("fileID: %s", fileIDStr)
 
-	fileBuffer, metadata, err := d.usecase.GetFile(ctx, fileIDStr)
+	fileBuffer, metadata, err := d.usecase.GetFile(ctx, fileIDStr, user.ID.String())
 	if err != nil {
+		if err.Error() == "forbidden" {
+			log.WithError(err).Errorln("у пользователя нет прав")
+			responser.SendError(ctx, w, "Forbidden", http.StatusForbidden)
+			return
+		}
 		log.WithError(err).Errorln("не удалось получить файл")
 		responser.SendError(ctx, w, "File not found", http.StatusNotFound)
 		return
@@ -180,26 +167,6 @@ func (d Delivery) GetStickerPacks(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := easyjson.Marshal(packs)
 	responser.SendJson(ctx, w, jsonResp, err, http.StatusOK)
 }
-
-// // @Router /files [post]
-// func (d *Delivery) UploadFile(w http.ResponseWriter, r *http.Request) {
-// 	ctx := r.Context()
-
-// 	file, header, err := r.FormFile("file")
-// 	if err != nil {
-// 		http.Error(w, "Error retrieving the file", http.StatusBadRequest)
-// 		return
-// 	}
-// 	defer file.Close()
-
-// 	filename, err := d.usecase.SaveFile(ctx, file, header)
-// 	if err != nil {
-// 		responser.SendError(ctx, w, "Internal server error", http.StatusInternalServerError)
-// 		return
-// 	}
-
-// 	responser.SendStruct(ctx, w, models.UploadFileResponse{FileID: filename}, http.StatusCreated)
-// }
 
 type File struct {
 	*os.File

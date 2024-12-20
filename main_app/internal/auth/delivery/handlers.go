@@ -155,7 +155,7 @@ func (d *Delivery) RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		ctx,
 		&authv1.RegistrationRequest{
 			Username: creds.Username,
-			Name:     creds.Username,
+			Name:     creds.Name,
 			Password: creds.Password,
 		})
 	if err != nil {

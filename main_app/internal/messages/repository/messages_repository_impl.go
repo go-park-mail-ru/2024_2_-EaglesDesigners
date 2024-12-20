@@ -360,7 +360,8 @@ func (r *MessageRepositoryImpl) GetMessageById(ctx context.Context, messageId uu
 		m.sent_at, 
 		m.is_redacted,
 		m.chat_id,
-		mt.value
+		mt.value,
+		m.sticker_path
 		FROM public.message AS m
 		JOIN public.message_type AS mt ON mt.id = m.message_type_id
 		WHERE m.id = $1
@@ -370,13 +371,16 @@ func (r *MessageRepositoryImpl) GetMessageById(ctx context.Context, messageId uu
 	)
 
 	var authorID uuid.UUID
-	var message string
+	var message sql.NullString
 	var sentAt time.Time
 	var isRedacted bool
 	var chatId uuid.UUID
 	var messageType string
+	var files []models.Payload
+	var photos []models.Payload
+	var sticker sql.NullString
 
-	err = row.Scan(&authorID, &message, &sentAt, &isRedacted, &chatId, &messageType)
+	err = row.Scan(&authorID, &message, &sentAt, &isRedacted, &chatId, &messageType, &sticker)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		return models.Message{}, nil
@@ -390,11 +394,61 @@ func (r *MessageRepositoryImpl) GetMessageById(ctx context.Context, messageId uu
 	messageModel := models.Message{
 		MessageId:   messageId,
 		AuthorID:    authorID,
-		Message:     message,
+		Message:     message.String,
 		SentAt:      sentAt,
 		IsRedacted:  isRedacted,
 		ChatId:      chatId,
 		MessageType: messageType,
+		FilesDTO:    files,
+		PhotosDTO:   photos,
+		Sticker:     sticker.String,
+	}
+
+	if messageModel.MessageType == MessageWithPayloadType {
+		log.Printf("поиск вложений сообщения %v", messageModel.MessageId)
+
+		payloadRows, err := conn.Query(context.Background(),
+			`select 
+				mp.payload_path,
+				mp.filename,
+				mp.size,
+				(SELECT value FROM public.payload_type WHERE id = mp.payload_type) 
+			from public.message_payload mp 
+			where mp.message_id = $1;`,
+			messageModel.MessageId,
+		)
+		if err != nil {
+			log.Printf("Repository: Unable to SELECT payloads: %v\n", err)
+			return models.Message{}, err
+		}
+
+		for payloadRows.Next() {
+			var payloadPath string
+			var payloadType string
+			var size int64
+			var filename string
+
+			err = payloadRows.Scan(&payloadPath, &filename, &size, &payloadType)
+			if err != nil {
+				log.Printf("Repository: unable to scan payloads: %v", err)
+				return models.Message{}, err
+			}
+			if payloadType == filePayloadType {
+				log.Printf("получен файл %s", payloadPath)
+				messageModel.FilesDTO = append(messageModel.FilesDTO, models.Payload{
+					URL:      payloadPath,
+					Filename: filename,
+					Size:     size,
+				})
+			} else if payloadType == photoPayloadType {
+				log.Printf("получено фото %s", payloadPath)
+				messageModel.PhotosDTO = append(messageModel.PhotosDTO, models.Payload{
+					URL:      payloadPath,
+					Filename: filename,
+					Size:     size,
+				})
+			}
+		}
 	}
 
 	return messageModel, nil
@@ -578,7 +632,8 @@ func (r *MessageRepositoryImpl) GetMessagesAfter(ctx context.Context, chatId uui
 	m.message,
 	m.sent_at, 
 	m.is_redacted,
-	mt.value
+	mt.value,
+	m.sticker_path
 	FROM public.message AS m
 	JOIN public.message_type AS mt ON mt.id = m.message_type_id
 	WHERE m.chat_id = $1 AND m.sent_at <= (SELECT sent_at FROM message WHERE id = $2) AND m.id != $2
@@ -598,12 +653,15 @@ func (r *MessageRepositoryImpl) GetMessagesAfter(ctx context.Context, chatId uui
 	for rows.Next() {
 		var messageId uuid.UUID
 		var authorID uuid.UUID
-		var message string
+		var message sql.NullString
 		var sentAt time.Time
 		var isRedacted bool
 		var messageType string
+		var files []models.Payload
+		var photos []models.Payload
+		var sticker sql.NullString
 
-		err = rows.Scan(&messageId, &authorID, &message, &sentAt, &isRedacted, &messageType)
+		err = rows.Scan(&messageId, &authorID, &message, &sentAt, &isRedacted, &messageType, &sticker)
 		if err != nil {
 			log.Printf("Repository: unable to scan: %v", err)
 			return nil, err
@@ -612,12 +670,65 @@ func (r *MessageRepositoryImpl) GetMessagesAfter(ctx context.Context, chatId uui
 		messages = append(messages, models.Message{
 			MessageId:   messageId,
 			AuthorID:    authorID,
-			Message:     message,
+			Message:     message.String,
 			SentAt:      sentAt,
 			IsRedacted:  isRedacted,
 			MessageType: messageType,
+			FilesDTO:    files,
+			PhotosDTO:   photos,
+			Sticker:     sticker.String,
 		})
 	}
+
+	for i := 0; i < len(messages); i++ {
+		if messages[i].MessageType == MessageWithPayloadType {
+			log.Printf("поиск вложений сообщения %v", messages[i].MessageId)
+
+			payloadRows, err := conn.Query(context.Background(),
+				`select 
+					mp.payload_path,
+					mp.filename,
+					mp.size,
+					(SELECT value FROM public.payload_type WHERE id = mp.payload_type) 
+				from public.message_payload mp 
+				where mp.message_id = $1;`,
+				messages[i].MessageId,
+			)
+			if err != nil {
+				log.Printf("Repository: Unable to SELECT payloads: %v\n", err)
+				return nil, err
+			}
+
+			for payloadRows.Next() {
+				var payloadPath string
+				var payloadType string
+				var size int64
+				var filename string
+
+				err = payloadRows.Scan(&payloadPath, &filename, &size, &payloadType)
+				if err != nil {
+					log.Printf("Repository: unable to scan payloads: %v", err)
+					return nil, err
+				}
+				if payloadType == filePayloadType {
+					log.Printf("получен файл %s", payloadPath)
+					messages[i].FilesDTO = append(messages[i].FilesDTO, models.Payload{
+						URL:      payloadPath,
+						Filename: filename,
+						Size:     size,
+					})
+				} else if payloadType == photoPayloadType {
+					log.Printf("получено фото %s", payloadPath)
+					messages[i].PhotosDTO = append(messages[i].PhotosDTO, models.Payload{
+						URL:      payloadPath,
+						Filename: filename,
+						Size:     size,
+					})
+				}
+			}
+		}
+	}
+	log.Println("Repository: вложения получены")
 
 	log.Printf("Repository: сообщения успешно найдеты. Количество сообшений: %d", len(messages))
 	return messages, nil

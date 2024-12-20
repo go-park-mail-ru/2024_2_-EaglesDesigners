@@ -11,6 +11,7 @@ import (
 	"image/png"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"strings"
 
 	"github.com/chai2010/webp"
@@ -329,7 +330,19 @@ func addFileURLPrefix(fileID string) string {
 	return fileURLPrefix + fileID
 }
 
-func convertToWebP(file multipart.File, contentType string) (bytes.Buffer, error) {
+func convertToWebP(file multipart.File, _ string) (bytes.Buffer, error) {
+	// Определить тип содержимого
+	buf := make([]byte, 512)
+	if _, err := file.Read(buf); err != nil {
+		return bytes.Buffer{}, err
+	}
+	contentType := http.DetectContentType(buf)
+
+	// Вернуть указатель к началу файла
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return bytes.Buffer{}, err
+	}
+
 	var img image.Image
 	var err error
 
@@ -350,12 +363,17 @@ func convertToWebP(file multipart.File, contentType string) (bytes.Buffer, error
 		return bytes.Buffer{}, err
 	}
 
-	var buf bytes.Buffer
-	if err := webp.Encode(&buf, img, &webp.Options{Lossless: false, Quality: 70}); err != nil {
+	var bufOut bytes.Buffer
+
+	options := &webp.Options{
+		Lossless: false,
+		Quality:  60,
+	}
+	if err := webp.Encode(&bufOut, img, options); err != nil {
 		return bytes.Buffer{}, err
 	}
 
-	return buf, nil
+	return bufOut, nil
 }
 
 func (u *Usecase) SaveSticker(ctx context.Context, file multipart.File, header *multipart.FileHeader, name string) error {

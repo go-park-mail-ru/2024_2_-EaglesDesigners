@@ -43,7 +43,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd 2024_2_EaglesDesigners/
-            git pull
+            sudo git pull
             sudo chown 999:999 ./log
             sudo chmod 700 ./log
             sudo docker-compose down

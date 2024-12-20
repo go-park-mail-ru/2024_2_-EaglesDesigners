@@ -61,7 +61,6 @@ func NewWebsocket(usecase websocketUsecase.WebsocketUsecase) Webcosket {
 func (h *Webcosket) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	metric.IncHit()
 	log := logger.LoggerWithCtx(r.Context(), logger.Log)
-
 	user, ok := r.Context().Value(middleware.UserKey).(middleware.User)
 	if !ok {
 		responser.SendError(r.Context(), w, "Не переданы параметры", http.StatusInternalServerError)

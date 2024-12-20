@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/mailru/easyjson"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/mailru/easyjson"
+
 
 	"github.com/go-park-mail-ru/2024_2_EaglesDesigner/global_utils/logger"
 	"github.com/go-park-mail-ru/2024_2_EaglesDesigner/global_utils/metric"

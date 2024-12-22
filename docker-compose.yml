@@ -61,6 +61,7 @@ services:
     image: postgres:15.0
     ports:
       - "127.0.0.1:5450:5432"
+      - "8040:5432"
     volumes:
       - ./db/migrations:/docker-entrypoint-initdb.d
       - ./gen:/home/gen/

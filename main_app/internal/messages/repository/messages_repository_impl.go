@@ -636,9 +636,10 @@ func (r *MessageRepositoryImpl) GetMessagesAfter(ctx context.Context, chatId uui
 	m.sticker_path
 	FROM public.message AS m
 	JOIN public.message_type AS mt ON mt.id = m.message_type_id
-	WHERE m.chat_id = $1 AND m.sent_at <= (SELECT sent_at FROM message WHERE id = $2) AND m.id != $2
+	WHERE m.chat_id = $1
 	ORDER BY sent_at DESC
-	LIMIT $3;`,
+	LIMIT $3
+	OFFSET 3;`,
 		chatId,
 		lastMessageId,
 		pageSize,
